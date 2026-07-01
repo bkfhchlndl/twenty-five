@@ -1,0 +1,46 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/twenty_five?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&allowMultiQueries=true&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+
+  mail:
+    host: smtp.qq.com
+    username: 3507713614@qq.com
+    password: sfgxsafjvkndciaj
+    port: 587
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ""
+      database: 0
+
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.life.twentyfive.entity
+  configuration:
+    # 下划线转驼峰自动映射
+    map-underscore-to-camel-case: true
+    # 控制台打印 SQL，开发调试用，生产环境关掉
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      # 全局逻辑删除配置（和你实体类的 @TableLogic 配合生效）
+      logic-delete-field: isDel
+      logic-delete-value: 1
+      logic-not-delete-value: 0

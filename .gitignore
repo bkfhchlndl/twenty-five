@@ -1,0 +1,14 @@
+# 忽略上传目录
+.uploads/
+
+# 忽略所有子项目的依赖和编译产物
+**/node_modules/
+**/target/
+
+# 忽略编辑器配置
+.idea/
+.vscode/
+
+# 忽略系统临时文件
+*.log
+.DS_Store
