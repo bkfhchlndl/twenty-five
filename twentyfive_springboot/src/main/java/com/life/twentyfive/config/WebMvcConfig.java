@@ -21,9 +21,11 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addInterceptor(loginInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns(
-                        "/user/register",
-                        "/user/login",
-                        "/user/sendCode" // 发送验证码接口也要放行，无需登录即可调用
+                        "/user/sendCode",   // 用户注册 - 发送验证码
+                        "/user/register",   // 用户注册
+                        "/user/login",  // 用户登录
+                        "/user/resetPasswordSendCode",  // 重置密码 - 获取验证码
+                        "/user/resetPassword"   // 重置密码
                 );
     }
 

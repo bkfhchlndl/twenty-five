@@ -1,5 +1,5 @@
 <template>
-  <div class="login-container">
+  <div class="reset-container">
     <!-- 飘落雪花 -->
     <div class="snowflakes">
       <div class="snowflake" v-for="i in 50" :key="'s'+i" :style="snowStyle(i)">❄</div>
@@ -10,34 +10,42 @@
       <div class="wave wave2"></div>
       <div class="wave wave3"></div>
     </div>
-    <el-card class="login-card">
-      <h2 class="title">用户登录</h2>
-      <h1 class="title">18837727538@163.com</h1>
-      <h2 class="title">123456</h2>
-      <el-form :model="loginForm" :rules="rules" ref="loginFormRef" label-width="80px">
-        <el-form-item label="邮箱" prop="email" >
-          <el-input v-model="loginForm.email" placeholder="请输入邮箱" />
+    <div class="reset-card">
+      <h2 class="title">重置密码</h2>
+      <el-form :model="resetForm" :rules="rules" ref="resetFormRef" label-width="100px">
+        <el-form-item label="邮箱" prop="email">
+          <el-input v-model="resetForm.email" placeholder="请输入注册邮箱" />
         </el-form-item>
-        <el-form-item label="密码" prop="password">
-          <el-input v-model="loginForm.password" type="password" placeholder="请输入密码" />
+        <el-form-item label="验证码" prop="code">
+          <div style="display:flex; gap:10px">
+            <el-input v-model="resetForm.code" placeholder="请输入验证码" style="flex:1" />
+            <el-button
+              :disabled="countDown > 0"
+              @click="handleSendCode"
+              style="width:120px"
+            >
+              {{ countDown > 0 ? `${countDown}秒后重发` : '发送验证码' }}
+            </el-button>
+          </div>
+        </el-form-item>
+        <el-form-item label="新密码" prop="Password">
+          <el-input v-model="resetForm.password" type="password" placeholder="请输入新密码" />
+        </el-form-item>
+        <el-form-item label="确认密码" prop="confirmPassword">
+          <el-input v-model="resetForm.confirmPassword" type="password" placeholder="请再次输入新密码" />
         </el-form-item>
         <el-form-item>
-          <el-button class="login-btn" style="width:100%" @click="handleLogin" :loading="loading">
-            登录
+          <el-button class="login-btn" style="width:100%" @click="handleReset" :loading="loading">
+            重置密码
           </el-button>
         </el-form-item>
         <el-form-item>
-          <el-button class="login-btn" style="width:100%" @click="$router.push('/register')">
-            注册
-          </el-button>
-        </el-form-item>
-        <el-form-item>
-          <el-button class="login-btn" style="width:100%" @click="$router.push('/resetpassword')">
-            忘记密码
+          <el-button class="login-btn" style="width:100%" @click="$router.push('/login')">
+            返回登录
           </el-button>
         </el-form-item>
       </el-form>
-    </el-card>
+    </div>
   </div>
 </template>
 
@@ -45,25 +53,44 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { login } from '@/api/user'
+import { resetPasswordSendCode, resetPassword } from '@/api/user'
 
 const router = useRouter()
-const loginFormRef = ref()
+const resetFormRef = ref()
 const loading = ref(false)
+const countDown = ref(0)
 
-const loginForm = ref({
+const resetForm = ref({
   email: '',
-  password: ''
+  code: '',
+  password: '',
+  confirmPassword: ''
 })
+
+const validateConfirmPassword = (rule, value, callback) => {
+  if (value !== resetForm.value.password) {
+    callback(new Error('两次输入的密码不一致'))
+  } else {
+    callback()
+  }
+}
 
 const rules = {
   email: [
     { required: true, message: '请输入邮箱', trigger: 'blur' },
     { type: 'email', message: '邮箱格式不正确', trigger: 'blur' }
   ],
+  code: [
+    { required: true, message: '请输入验证码', trigger: 'blur' },
+    { len: 6, message: '验证码为6位数字', trigger: 'blur' }
+  ],
   password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码至少6位', trigger: 'blur' }
+    { required: true, message: '请输入新密码', trigger: 'blur' },
+    { min: 6, max: 20, message: '密码长度需在6-20位之间', trigger: 'blur' }
+  ],
+  confirmPassword: [
+    { required: true, message: '请确认新密码', trigger: 'blur' },
+    { validator: validateConfirmPassword, trigger: 'blur' }
   ]
 }
 
@@ -83,14 +110,32 @@ const snowStyle = (i) => {
   }
 }
 
-const handleLogin = async () => {
-  await loginFormRef.value.validate()
+// 发送验证码
+const handleSendCode = async () => {
+  if (!resetForm.value.email) {
+    ElMessage.warning('请先输入邮箱')
+    return
+  }
+  await resetPasswordSendCode(resetForm.value.email)
+  ElMessage.success('验证码发送成功')
+
+  countDown.value = 60
+  const timer = setInterval(() => {
+    countDown.value--
+    if (countDown.value <= 0) {
+      clearInterval(timer)
+    }
+  }, 1000)
+}
+
+// 重置密码
+const handleReset = async () => {
+  await resetFormRef.value.validate()
   loading.value = true
   try {
-    const token = await login(loginForm.value)
-    localStorage.setItem('token', token)
-    ElMessage.success('登录成功')
-    router.push('/homepage')
+    await resetPassword(resetForm.value)
+    ElMessage.success('密码重置成功，请登录')
+    router.push('/login')
   } finally {
     loading.value = false
   }
@@ -98,7 +143,7 @@ const handleLogin = async () => {
 </script>
 
 <style scoped>
-.login-container {
+.reset-container {
   display: flex;
   justify-content: flex-start;
   align-items: flex-start;
@@ -116,14 +161,14 @@ const handleLogin = async () => {
   box-shadow: none !important;
   border: none !important;
 }
-.login-card {
+.reset-card {
   width: 420px;
   padding: 40px 45px;
   background: rgba(255, 255, 255, 0.1) !important;
   backdrop-filter: blur(12px);
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
   position: relative;
   z-index: 2;
 }
@@ -154,14 +199,19 @@ const handleLogin = async () => {
   font-size: 16px;
   text-align: center;
 }
-.register-btn {
-  background-color: #9c27b0 !important;
-  border-color: #9c27b0 !important;
+.login-btn {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
   color: #fff !important;
+  backdrop-filter: blur(4px);
 }
-.register-btn:hover {
-  background-color: #7b1fa2 !important;
-  border-color: #7b1fa2 !important;
+.login-btn:hover {
+  background: rgba(255, 255, 255, 0.25) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+}
+/* 去掉 el-card 自带的白色背景 */
+:deep(.el-card__body) {
+  background: transparent !important;
 }
 /* 雪花容器 */
 .snowflakes {
@@ -250,15 +300,5 @@ const handleLogin = async () => {
   padding: 0;
   overflow: hidden;
   height: 100%;
-}
-.login-btn {
-  background: rgba(255, 255, 255, 0.15) !important;
-  border: 1px solid rgba(255, 255, 255, 0.3) !important;
-  color: #fff !important;
-  backdrop-filter: blur(4px);
-}
-.login-btn:hover {
-  background: rgba(255, 255, 255, 0.25) !important;
-  border-color: rgba(255, 255, 255, 0.5) !important;
 }
 </style>

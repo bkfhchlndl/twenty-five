@@ -5,6 +5,7 @@ import com.life.twentyfive.common.UserContext;
 import com.life.twentyfive.entity.User;
 import com.life.twentyfive.entity.dto.LoginDTO;
 import com.life.twentyfive.entity.dto.RegisterDTO;
+import com.life.twentyfive.entity.dto.ResetPasswordDTO;
 import com.life.twentyfive.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
@@ -16,6 +17,13 @@ public class UserController {
 
     @Resource
     private UserService userService;
+
+    // 用户注册 - 发送验证码
+    @GetMapping("/sendCode")
+    public Result<Void> sendCode(@RequestParam String email) {
+        userService.sendCode(email);
+        return Result.success();
+    }
 
     // 用户注册
     @PostMapping("/register")
@@ -40,17 +48,24 @@ public class UserController {
         return Result.success(user);
     }
 
-    // 发送验证码
-    @GetMapping("/sendCode")
-    public Result<Void> sendCode(@RequestParam String email) {
-        userService.sendCode(email);
-        return Result.success();
-    }
-
     // 用户登出
     @PostMapping("/logout")
     public Result<Void> logout() {
         userService.logout();
+        return Result.success();
+    }
+
+    // 重置密码 - 发送验证码
+    @GetMapping("/resetPasswordSendCode")
+    public Result<Void> resetPasswordSendCode(@RequestParam String email) {
+        userService.resetPasswordSendCode(email);
+        return Result.success();
+    }
+
+    // 重置密码
+    @PostMapping("/resetPassword")
+    public Result<Void> resetPassword(@RequestBody @Valid ResetPasswordDTO resetPasswordDTO) {
+        userService.resetPassword(resetPasswordDTO);
         return Result.success();
     }
 }

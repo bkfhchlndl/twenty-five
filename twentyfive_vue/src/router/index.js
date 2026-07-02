@@ -25,7 +25,12 @@ const routes = [
   },
   {
     path: '/',
-    redirect: '/user/info' // 默认跳转到个人信息页
+    redirect: '/userinfo' // 默认跳转到个人信息页
+  },
+  {
+    path: '/resetpassword',
+    name: 'ResetPassword',
+    component: () => import('@/views/ResetPassword.vue')
   }
 ]
 
