@@ -116,26 +116,32 @@ const handleSendCode = async () => {
     ElMessage.warning('请先输入邮箱')
     return
   }
-  await resetPasswordSendCode(resetForm.value.email)
-  ElMessage.success('验证码发送成功')
+  try {
+    await resetPasswordSendCode(resetForm.value.email)
+    ElMessage.success('验证码发送成功')
 
-  countDown.value = 60
-  const timer = setInterval(() => {
-    countDown.value--
-    if (countDown.value <= 0) {
-      clearInterval(timer)
-    }
-  }, 1000)
+    countDown.value = 60
+    const timer = setInterval(() => {
+      countDown.value--
+      if (countDown.value <= 0) {
+        clearInterval(timer)
+      }
+    }, 1000)
+  } catch (error) {
+    // 错误提示已在 request.js 中统一处理
+  }
 }
 
 // 重置密码
 const handleReset = async () => {
-  await resetFormRef.value.validate()
-  loading.value = true
   try {
+    await resetFormRef.value.validate()
+    loading.value = true
     await resetPassword(resetForm.value)
     ElMessage.success('密码重置成功，请登录')
     router.push('/login')
+  } catch (error) {
+    // 错误提示已在 request.js 中统一处理
   } finally {
     loading.value = false
   }

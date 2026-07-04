@@ -18,12 +18,12 @@ public class ResetPasswordDTO {
     private String code;
 
     // 密码
-    @NotBlank(message = "新密码不能为空")
+    @NotBlank(message = "密码不能为空")
     @Size(min = 6, max = 20, message = "密码长度需在6-20位之间")
     private String password;
 
     // 确认密码
-    @NotBlank(message = "确认新密码不能为空")
+    @NotBlank(message = "确认密码不能为空")
     @Size(min = 6, max = 20, message = "密码长度需在6-20位之间")
     private String confirmPassword;
 }

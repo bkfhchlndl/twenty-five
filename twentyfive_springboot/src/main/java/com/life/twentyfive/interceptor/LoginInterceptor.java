@@ -35,14 +35,14 @@ public class LoginInterceptor implements HandlerInterceptor {
         // 2. 从请求头中获取 Token（前后端约定请求头 key 为 Authorization）
         String token = request.getHeader("Authorization");
         if (token == null || token.trim().isEmpty()) {
-            throw new BusinessException("请先登录");
+            throw new BusinessException(401, "请先登录");
         }
 
         // 3. 去 Redis 校验 Token 是否存在且未过期
         String redisKey = TOKEN_PREFIX + token;
         String userIdStr = stringRedisTemplate.opsForValue().get(redisKey);
         if (userIdStr == null) {
-            throw new BusinessException("登录已过期，请重新登录");
+            throw new BusinessException(401, "登录已过期，请重新登录");
         }
 
         // 4. Token 有效，将用户ID存入上下文，供业务层使用

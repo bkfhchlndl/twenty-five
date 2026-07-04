@@ -10,6 +10,13 @@ spring:
     username: root
     password: 123456
 
+  servlet:
+    multipart:
+      enabled: true
+      # 单文件最大限制
+      max-file-size: 10MB
+      max-request-size: 10MB
+
   mail:
     host: smtp.qq.com
     username: 3507713614@qq.com
@@ -44,3 +51,10 @@ mybatis-plus:
       logic-delete-field: isDel
       logic-delete-value: 1
       logic-not-delete-value: 0
+
+# 文件上传配置
+upload:
+  # 文件本地存储根路径（Windows示例，Linux部署改为 /opt/life/upload/）
+  base-path: D:/life/upload/
+  # 访问URL前缀，对应静态资源映射
+  access-prefix: /upload/

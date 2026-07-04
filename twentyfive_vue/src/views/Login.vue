@@ -84,13 +84,15 @@ const snowStyle = (i) => {
 }
 
 const handleLogin = async () => {
-  await loginFormRef.value.validate()
-  loading.value = true
   try {
+    await loginFormRef.value.validate()
+    loading.value = true
     const token = await login(loginForm.value)
     localStorage.setItem('token', token)
     ElMessage.success('登录成功')
     router.push('/homepage')
+  } catch (error) {
+    // 错误提示已在 request.js 中统一处理
   } finally {
     loading.value = false
   }
