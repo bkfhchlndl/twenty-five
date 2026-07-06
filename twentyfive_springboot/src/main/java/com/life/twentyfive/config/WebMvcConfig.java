@@ -5,6 +5,7 @@ import jakarta.annotation.Resource;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
@@ -12,6 +13,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Resource
     private LoginInterceptor loginInterceptor;
+
+    @Resource
+    private UploadProperties uploadProperties;
 
     /**
      * 注册登录拦截器
@@ -25,7 +29,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/user/register",   // 用户注册
                         "/user/login",  // 用户登录
                         "/user/resetPasswordSendCode",  // 重置密码 - 获取验证码
-                        "/user/resetPassword"   // 重置密码
+                        "/user/resetPassword",   // 重置密码
+                        "/uploadImage",
+                        "/upload/**"
                 );
     }
 
@@ -45,5 +51,16 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .allowCredentials(true)
                 // 预检请求有效期，3600秒内无需重复发送OPTIONS
                 .maxAge(3600);
+    }
+
+    /**
+     * 静态资源映射：把 /upload/** 的请求，映射到本地磁盘的上传目录
+     * 比如访问 http://localhost:8080/upload/card/xxx.png
+     * 就会去 D:/life/upload/card/xxx.png 找文件
+     */
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        registry.addResourceHandler(uploadProperties.getAccessPrefix() + "**")
+                .addResourceLocations("file:" + uploadProperties.getBasePath());
     }
 }

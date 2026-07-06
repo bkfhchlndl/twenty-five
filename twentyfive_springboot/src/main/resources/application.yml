@@ -55,6 +55,6 @@ mybatis-plus:
 # 文件上传配置
 upload:
   # 文件本地存储根路径（Windows示例，Linux部署改为 /opt/life/upload/）
-  base-path: D:/life/upload/
+  base-path: F:/Code/upload/
   # 访问URL前缀，对应静态资源映射
   access-prefix: /upload/

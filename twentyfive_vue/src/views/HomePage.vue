@@ -68,10 +68,11 @@
             @click="handleCardClick(card)"
           >
             <img
-              v-if="card.imagePath"
+              v-if="card.imagePath && !failedCardImages.has(card.id)"
               class="home-card-image"
               :src="resolveImagePath(card.imagePath)"
               :alt="card.title"
+              @error="handleCardImgError(card.id)"
             />
             <div v-else class="home-card-image home-card-placeholder">
               {{ getCardInitial(card.title) }}
@@ -130,10 +131,11 @@
               :on-change="handleCardImageChange"
             >
               <img
-                v-if="cardForm.imagePath"
+                v-if="cardForm.imagePath && !cardFormImgFailed"
                 class="card-upload-preview"
                 :src="resolveImagePath(cardForm.imagePath)"
                 alt="卡片图片"
+                @error="handleCardFormImgError"
               />
               <div v-else class="card-upload-placeholder">
                 <el-icon :size="22">
@@ -209,6 +211,74 @@
         </div>
       </div>
     </el-dialog>
+
+    <el-dialog
+      v-model="sgsEditorVisible"
+      title="录入三国杀角色信息"
+      width="560px"
+      class="sgs-dialog"
+      @closed="closeSgsEditor"
+    >
+      <div class="sgs-editor-card">
+        <div class="sgs-editor-left">
+          <div class="sgs-avatar-label">角色头像</div>
+          <el-upload
+            class="sgs-avatar-uploader"
+            :show-file-list="false"
+            :auto-upload="false"
+            accept="image/*"
+            :on-change="handleSgsAvatarChange"
+          >
+            <img
+              v-if="sgsForm.avatar && !sgsAvatarFailed"
+              class="sgs-avatar-preview"
+              :src="resolveImagePath(sgsForm.avatar)"
+              alt="角色头像"
+              @error="sgsAvatarFailed = true"
+            />
+            <div v-else class="sgs-avatar-placeholder">
+              <el-icon :size="36" color="#b1c7e6"><Plus /></el-icon>
+              <span>上传头像</span>
+            </div>
+          </el-upload>
+        </div>
+        <div class="sgs-editor-right">
+          <el-form label-width="72px" label-position="right">
+            <el-form-item label="昵称" required>
+              <el-input
+                v-model="sgsForm.nickname"
+                placeholder="请输入游戏昵称"
+                maxlength="20"
+                clearable
+                size="large"
+              />
+            </el-form-item>
+            <el-form-item label="官阶">
+              <el-input
+                v-model="sgsForm.officialRank"
+                placeholder="如：大将军、中郎"
+                maxlength="20"
+                clearable
+              />
+            </el-form-item>
+            <el-form-item label="VIP等级">
+              <el-input
+                v-model="sgsForm.vipLevel"
+                placeholder="如：VIP10"
+                maxlength="10"
+                clearable
+              />
+            </el-form-item>
+          </el-form>
+        </div>
+      </div>
+      <template #footer>
+        <el-button size="large" @click="closeSgsEditor">取消</el-button>
+        <el-button type="primary" size="large" :loading="sgsSaving" @click="handleSaveSgsInfo">
+          保存并进入
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -218,13 +288,18 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Bell, Check, Close, Delete, Edit, Lock, Minus, Plus } from '@element-plus/icons-vue'
 import { getUserInfo } from '@/api/user'
-import { deleteCard, insertCard, selectAllCard, updateCard, uploadImage } from '@/api/card'
+import { deleteCard, insertCard, selectAllCard, updateCard } from '@/api/card'
+import { uploadImage } from '@/api/image'
 import {
   deleteQuotation,
   insertQuotation,
   selectQuotationList,
   updateQuotation
 } from '@/api/quotation'
+import {
+  existsSgsInformationByUserId,
+  insertSgsInformation
+} from '@/api/sgs'
 
 const router = useRouter()
 const unreadCount = ref(6)
@@ -257,6 +332,73 @@ const cardForm = ref({
   imagePath: '',
   sort: 0
 })
+
+const failedCardImages = ref(new Set())
+const cardFormImgFailed = ref(false)
+
+const handleCardImgError = (cardId) => {
+  failedCardImages.value.add(cardId)
+}
+
+const handleCardFormImgError = () => {
+  cardFormImgFailed.value = true
+}
+
+const sgsEditorVisible = ref(false)
+const sgsSaving = ref(false)
+const sgsAvatarFailed = ref(false)
+const sgsForm = ref({
+  nickname: '',
+  officialRank: '',
+  vipLevel: '',
+  avatar: ''
+})
+
+const openSgsEditor = () => {
+  sgsForm.value = {
+    nickname: '',
+    officialRank: '',
+    vipLevel: '',
+    avatar: ''
+  }
+  sgsAvatarFailed.value = false
+  sgsEditorVisible.value = true
+}
+
+const closeSgsEditor = () => {
+  sgsEditorVisible.value = false
+  sgsForm.value = {
+    nickname: '',
+    officialRank: '',
+    vipLevel: '',
+    avatar: ''
+  }
+  sgsAvatarFailed.value = false
+}
+
+const handleSgsAvatarChange = async (uploadFile) => {
+  const file = uploadFile.raw
+  if (!file) return
+  sgsForm.value.avatar = await uploadImage(file)
+  sgsAvatarFailed.value = false
+  ElMessage.success('头像上传成功')
+}
+
+const handleSaveSgsInfo = async () => {
+  if (!sgsForm.value.nickname?.trim()) {
+    ElMessage.warning('请输入昵称')
+    return
+  }
+  sgsSaving.value = true
+  try {
+    await insertSgsInformation({ ...sgsForm.value })
+    ElMessage.success('角色信息保存成功')
+    sgsEditorVisible.value = false
+    router.push('/card/sgs')
+  } finally {
+    sgsSaving.value = false
+  }
+}
 
 const loadUserInfo = async () => {
   try {
@@ -300,7 +442,7 @@ const resolveImagePath = (path) => {
   return `http://localhost:8080${path.startsWith('/') ? path : `/${path}`}`
 }
 
-const handleCardClick = (card) => {
+const handleCardClick = async (card) => {
   if (!card.path) {
     ElMessage.warning('暂无跳转地址')
     return
@@ -309,6 +451,19 @@ const handleCardClick = (card) => {
   if (/^https?:\/\//.test(card.path)) {
     window.open(card.path, '_blank')
     return
+  }
+
+  if (card.path === '/card/sgs') {
+    try {
+      const hasInfo = await existsSgsInformationByUserId()
+      if (!hasInfo) {
+        openSgsEditor()
+        return
+      }
+    } catch (e) {
+      openSgsEditor()
+      return
+    }
   }
 
   router.push(card.path)
@@ -323,6 +478,7 @@ const openCardCreate = () => {
     imagePath: '',
     sort: 0
   }
+  cardFormImgFailed.value = false
   cardEditorVisible.value = true
 }
 
@@ -344,6 +500,7 @@ const openCardEdit = (card) => {
     imagePath: card.imagePath || '',
     sort: card.sort ?? 0
   }
+  cardFormImgFailed.value = false
   cardEditorVisible.value = true
 }
 
@@ -376,6 +533,7 @@ const handleCardImageChange = async (uploadFile) => {
   }
 
   cardForm.value.imagePath = await uploadImage(file)
+  cardFormImgFailed.value = false
   ElMessage.success('图片上传成功')
 }
 
@@ -388,6 +546,7 @@ const resetCardEditor = () => {
     imagePath: '',
     sort: 0
   }
+  cardFormImgFailed.value = false
 }
 
 const saveCard = async () => {
@@ -628,7 +787,7 @@ onMounted(async () => {
 .notebook-panel {
   position: relative;
   flex: 0 0 auto;
-  width: min(800px, calc(100vw - 116px));
+  width: min(940px, calc(100vw - 116px));
   height: min(740px, calc(100vh - 150px));
   display: flex;
   flex-direction: column;
@@ -640,7 +799,7 @@ onMounted(async () => {
 }
 
 .card-panel {
-  width: 420px;
+  width: 620px;
   height: min(740px, calc(100vh - 150px));
   display: flex;
   flex-direction: column;
@@ -667,9 +826,9 @@ onMounted(async () => {
   flex: 1;
   min-height: 0;
   padding: 18px 22px;
-  display: grid;
-  grid-template-columns: 1fr;
-  align-content: start;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   gap: 16px;
   overflow-y: auto;
   box-sizing: border-box;
@@ -677,11 +836,11 @@ onMounted(async () => {
 
 .home-card {
   width: 100%;
-  min-height: 116px;
-  padding: 18px 20px;
+  min-height: 100px;
+  padding: 16px 20px;
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 16px;
   border: 1px solid #e1e8f0;
   border-radius: 8px;
   background: #fff;
@@ -942,6 +1101,117 @@ onMounted(async () => {
 
 :deep(.notebook-dialog .el-textarea__inner) {
   border-radius: 6px;
+}
+
+.sgs-editor-card {
+  display: flex;
+  gap: 32px;
+  padding: 10px 4px 6px;
+}
+
+.sgs-editor-left {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.sgs-avatar-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.sgs-avatar-uploader :deep(.el-upload) {
+  display: block;
+}
+
+.sgs-avatar-preview {
+  width: 140px;
+  height: 140px;
+  border-radius: 14px;
+  object-fit: cover;
+  border: 2px solid #e4ecf9;
+  background: #f5f8fd;
+  box-shadow: 0 4px 14px rgba(70, 120, 200, 0.12);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sgs-avatar-preview:hover {
+  border-color: #5b8def;
+  box-shadow: 0 6px 20px rgba(91, 141, 239, 0.25);
+}
+
+.sgs-avatar-placeholder {
+  width: 140px;
+  height: 140px;
+  border-radius: 14px;
+  border: 2px dashed #c5d4ec;
+  background: linear-gradient(160deg, #f0f5fd 0%, #e7eefc 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sgs-avatar-placeholder:hover {
+  border-color: #5b8def;
+  background: linear-gradient(160deg, #e7eefc 0%, #d9e4f8 100%);
+}
+
+.sgs-avatar-placeholder span {
+  font-size: 13px;
+  color: #7a92b5;
+}
+
+.sgs-editor-right {
+  flex: 1;
+  min-width: 0;
+  padding-top: 4px;
+}
+
+.sgs-editor-right :deep(.el-form-item) {
+  margin-bottom: 20px;
+}
+
+.sgs-editor-right :deep(.el-form-item__label) {
+  color: #4a5875;
+  font-weight: 500;
+}
+
+:deep(.sgs-dialog .el-dialog) {
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+:deep(.sgs-dialog .el-dialog__header) {
+  background: linear-gradient(90deg, #4a7fd8 0%, #6b97e5 100%);
+  margin-right: 0;
+  padding: 18px 24px;
+}
+
+:deep(.sgs-dialog .el-dialog__title) {
+  color: #fff;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+:deep(.sgs-dialog .el-dialog__headerbtn .el-dialog__close) {
+  color: #fff;
+  font-size: 18px;
+}
+
+:deep(.sgs-dialog .el-dialog__body) {
+  padding: 20px 28px 10px;
+}
+
+:deep(.sgs-dialog .el-dialog__footer) {
+  padding: 10px 28px 22px;
 }
 
 </style>
