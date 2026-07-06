@@ -18,16 +18,6 @@ public class CardController {
     @Resource
     private CardService cardService;
 
-    @Resource
-    private FileUploadUtil fileUploadUtil;
-
-    // 单独的卡片图片上传接口
-    @PostMapping("/uploadImage")
-    public Result uploadImage(@RequestParam("file") MultipartFile file) {
-        String imagePath = fileUploadUtil.uploadImage(file, "card");
-        return Result.success(imagePath);
-    }
-
     // 查询所有卡片
     @GetMapping("/selectAllCard")
     public Result<List<Card>> selectAllCard(){
